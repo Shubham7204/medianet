@@ -8,6 +8,7 @@ import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Badge } from "./components/ui/badge"
 import { ScrollArea } from "./components/ui/scroll-area"
+import ChartRenderer from "./components/ChartRenderer"
 import {
   Target,
   Send,
@@ -26,6 +27,7 @@ interface Message {
   content: string
   timestamp: Date
   isLoading?: boolean
+  chartData?: any // Chart data from backend
 }
 
 interface MetricData {
@@ -139,6 +141,7 @@ const AdvertiserChatBot: React.FC = () => {
         type: "bot",
         content: responseContent,
         timestamp: new Date(),
+        chartData: data.chart_data || null
       }
 
       setMessages((prev) => prev.slice(0, -1).concat([botResponse]))
@@ -242,6 +245,19 @@ const AdvertiserChatBot: React.FC = () => {
                                       __html: formatMessageContent(message.content),
                                     }}
                                   />
+                                  
+                                  {/* Render chart if chart data exists */}
+                                  {message.chartData && (
+                                    <div className="mt-4">
+                                      <ChartRenderer 
+                                        chartData={message.chartData}
+                                        width={350}
+                                        height={250}
+                                        className="w-full"
+                                      />
+                                    </div>
+                                  )}
+                                  
                                   <div
                                     className={`text-xs mt-2 ${
                                       message.type === "user" ? "text-accent-foreground/70" : "text-muted-foreground"

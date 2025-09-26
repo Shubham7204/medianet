@@ -6,6 +6,7 @@ import { Input } from './components/ui/input';
 import { Badge } from './components/ui/badge';
 import { ScrollArea } from './components/ui/scroll-area';
 import { BarChart3, Send, Loader2, Bot, User, Globe, Shield, TrendingUp } from 'lucide-react';
+import ChartRenderer from './components/ChartRenderer';
 
 interface Message {
   id: number;
@@ -13,6 +14,7 @@ interface Message {
   content: string;
   timestamp: Date;
   isLoading?: boolean;
+  chartData?: any; // Chart data from backend
 }
 
 const PublisherChatBot: React.FC = () => {
@@ -186,7 +188,8 @@ const PublisherChatBot: React.FC = () => {
         id: messages.length + 3,
         type: 'bot',
         content: responseContent,
-        timestamp: new Date()
+        timestamp: new Date(),
+        chartData: data.chart_data || null
       };
 
       setMessages(prev => prev.slice(0, -1).concat([botResponse]));
@@ -282,6 +285,58 @@ const PublisherChatBot: React.FC = () => {
                                       __html: formatMessageContent(message.content) 
                                     }}
                                   />
+                                  
+                                  {/* Render chart if chart data exists */}
+                                  {message.chartData && (
+                                    <div className="mt-4">
+                                      {message.chartData.primary ? (
+                                        // Handle multiple charts (like revenue endpoint)
+                                        <div className="space-y-4">
+                                          <ChartRenderer 
+                                            chartData={message.chartData.primary}
+                                            width={350}
+                                            height={250}
+                                            className="w-full"
+                                          />
+                                          {message.chartData.secondary && (
+                                            <ChartRenderer 
+                                              chartData={message.chartData.secondary}
+                                              width={350}
+                                              height={250}
+                                              className="w-full"
+                                            />
+                                          )}
+                                        </div>
+                                      ) : message.chartData.geography ? (
+                                        // Handle geography charts
+                                        <div className="space-y-4">
+                                          <ChartRenderer 
+                                            chartData={message.chartData.geography}
+                                            width={350}
+                                            height={250}
+                                            className="w-full"
+                                          />
+                                          {message.chartData.device && (
+                                            <ChartRenderer 
+                                              chartData={message.chartData.device}
+                                              width={350}
+                                              height={250}
+                                              className="w-full"
+                                            />
+                                          )}
+                                        </div>
+                                      ) : (
+                                        // Handle single chart
+                                        <ChartRenderer 
+                                          chartData={message.chartData}
+                                          width={350}
+                                          height={250}
+                                          className="w-full"
+                                        />
+                                      )}
+                                    </div>
+                                  )}
+                                  
                                   <div className={`text-xs mt-2 ${message.type === 'user' ? 'text-accent-foreground/70' : 'text-muted-foreground'}`}>
                                     {message.timestamp.toLocaleTimeString([], { 
                                       hour: '2-digit', 

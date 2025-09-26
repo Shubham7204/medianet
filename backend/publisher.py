@@ -269,11 +269,46 @@ def call_gemini(prompt: str) -> dict:
 # Publisher data endpoints
 @router.get("/impressions")
 def get_impressions() -> Dict:
-    return {"metric": "impressions", "value": 10000, "description": "How many times ads were shown"}
+    return {
+        "metric": "impressions",
+        "value": 10000,
+        "description": "How many times ads were shown",
+        "chart_data": {
+            "type": "bar",
+            "title": "Daily Impressions (Last 7 Days)",
+            "labels": ["Sep 20", "Sep 21", "Sep 22", "Sep 23", "Sep 24", "Sep 25", "Sep 26"],
+            "data": [9500, 9800, 10000, 9900, 10200, 9700, 10000],
+            "backgroundColor": "#4285F4"
+        }
+    }
 
 @router.get("/clicks")
 def get_clicks() -> Dict:
-    return {"metric": "clicks", "value": 500, "ctr": 0.05, "description": "How many times ads were clicked (CTR)"}
+    return {
+        "metric": "clicks",
+        "value": 500,
+        "ctr": 0.05,
+        "description": "How many times ads were clicked (CTR)",
+        "chart_data": {
+            "type": "line",
+            "title": "Click Performance & CTR Trend",
+            "labels": ["Sep 20", "Sep 21", "Sep 22", "Sep 23", "Sep 24", "Sep 25", "Sep 26"],
+            "datasets": [
+                {
+                    "label": "Clicks",
+                    "data": [475, 490, 500, 495, 510, 485, 500],
+                    "borderColor": "#34A853",
+                    "yAxisID": "y"
+                },
+                {
+                    "label": "CTR %",
+                    "data": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+                    "borderColor": "#EA4335",
+                    "yAxisID": "y1"
+                }
+            ]
+        }
+    }
 
 @router.get("/revenue")
 def get_revenue() -> Dict:
@@ -282,12 +317,51 @@ def get_revenue() -> Dict:
         "daily": 100.0,
         "monthly": 3000.0,
         "site_wise": {"site1": 1500.0, "site2": 1500.0},
-        "description": "Revenue / Earnings (daily, monthly, site-wise)"
+        "description": "Revenue / Earnings (daily, monthly, site-wise)",
+        "chart_data": {
+            "primary": {
+                "type": "area",
+                "title": "Revenue Trend (Last 7 Days)",
+                "labels": ["Sep 20", "Sep 21", "Sep 22", "Sep 23", "Sep 24", "Sep 25", "Sep 26"],
+                "data": [95, 98, 100, 105, 102, 98, 100],
+                "backgroundColor": "rgba(52, 168, 83, 0.2)",
+                "borderColor": "#34A853"
+            },
+            "secondary": {
+                "type": "bar",
+                "title": "Site-wise Revenue Comparison",
+                "labels": ["Site 1", "Site 2", "Site 3", "Site 4"],
+                "data": [1500, 1500, 800, 700],
+                "backgroundColor": ["#4285F4", "#34A853", "#FBBC04", "#EA4335"]
+            }
+        }
     }
 
 @router.get("/rpm")
 def get_rpm() -> Dict:
-    return {"metric": "rpm", "value": 5.0, "ecpm": 4.8, "description": "RPM / eCPM (revenue per 1000 impressions)"}
+    return {
+        "metric": "rpm",
+        "value": 5.0,
+        "ecpm": 4.8,
+        "description": "RPM / eCPM (revenue per 1000 impressions)",
+        "chart_data": {
+            "type": "bar",
+            "title": "RPM vs eCPM Comparison",
+            "labels": ["Week 1", "Week 2", "Week 3", "Week 4"],
+            "datasets": [
+                {
+                    "label": "RPM",
+                    "data": [4.8, 4.9, 5.0, 5.1],
+                    "backgroundColor": "#4285F4"
+                },
+                {
+                    "label": "eCPM",
+                    "data": [4.5, 4.6, 4.8, 4.9],
+                    "backgroundColor": "#34A853"
+                }
+            ]
+        }
+    }
 
 @router.get("/geography")
 def get_geography() -> Dict:
@@ -295,7 +369,23 @@ def get_geography() -> Dict:
         "metric": "geography",
         "breakdown": {"US": 60, "EU": 30, "Other": 10},
         "device": {"desktop": 40, "mobile": 60},
-        "description": "Geography / Device breakdown"
+        "description": "Geography / Device breakdown",
+        "chart_data": {
+            "geography": {
+                "type": "pie",
+                "title": "Revenue by Geography",
+                "labels": ["United States", "Europe", "Asia", "Others"],
+                "data": [60, 30, 7, 3],
+                "backgroundColor": ["#4285F4", "#34A853", "#FBBC04", "#EA4335"]
+            },
+            "device": {
+                "type": "doughnut",
+                "title": "Traffic by Device",
+                "labels": ["Mobile", "Desktop", "Tablet"],
+                "data": [60, 35, 5],
+                "backgroundColor": ["#34A853", "#4285F4", "#FBBC04"]
+            }
+        }
     }
 
 # Publisher-specific configuration
@@ -394,6 +484,8 @@ async def handle_publisher_query(user_query: UserQuery):
     # Direct match check for publisher metrics
     if query in publisher_metric_keys:
         result = PUBLISHER_FUNCTION_MAP[query]()
+        result["chat_response"] = f"Here's your {result['metric']} data with visualization"
+        result["timestamp"] = "2025-09-26T10:30:00Z"
         return {
             "type": "publisher_metric",
             "query": user_query.query,
@@ -413,6 +505,8 @@ async def handle_publisher_query(user_query: UserQuery):
 
     found_metric = publisher_metric_keys[max_similarity_idx]
     result = PUBLISHER_FUNCTION_MAP[found_metric]()
+    result["chat_response"] = f"Here's your {result['metric']} data with visualization"
+    result["timestamp"] = "2025-09-26T10:30:00Z"
     return {
         "type": "publisher_metric",
         "query": user_query.query,
