@@ -13,14 +13,8 @@ const LandingPage: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8">
             Your complete digital advertising analytics platform with AI-powered insights
           </p>
-          
           {/* Feature highlights */}
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-              <div className="text-3xl mb-2">🔍</div>
-              <h3 className="font-semibold text-gray-800">Website Analysis</h3>
-              <p className="text-sm text-gray-600">AI-powered security, SEO & monetization insights</p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
               <div className="text-3xl mb-2">📊</div>
               <h3 className="font-semibold text-gray-800">Publisher Analytics</h3>
@@ -35,26 +29,7 @@ const LandingPage: React.FC = () => {
         </div>
 
         {/* Service Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Website Analyzer */}
-          <Link 
-            to="/website-analyzer"
-            className="group bg-white/95 backdrop-blur-md rounded-2xl p-8 shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300"
-          >
-            <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
-              🤖
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Website Analyzer
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Get comprehensive analysis of any website including security vulnerabilities, SEO opportunities, and ad placement suggestions.
-            </p>
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-full font-semibold group-hover:from-purple-500 group-hover:to-pink-500 transition-all duration-300">
-              Analyze Website →
-            </div>
-          </Link>
-
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Publisher Dashboard */}
           <Link 
             to="/publisher"
