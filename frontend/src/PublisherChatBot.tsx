@@ -1,4 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Card, CardContent } from './components/ui/card';
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { Badge } from './components/ui/badge';
+import { ScrollArea } from './components/ui/scroll-area';
+import { BarChart3, Send, Loader2, Bot, User, Globe, Shield, TrendingUp } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -13,7 +20,7 @@ const PublisherChatBot: React.FC = () => {
     {
       id: 1,
       type: 'bot',
-      content: 'Hello! I\'m your Publisher Analytics & Website Analysis Assistant. I can help you with:\n\n📊 **Publisher Metrics:**\n• "Show me today\'s revenue"\n• "What\'s my RPM this month?"\n• "Geography breakdown for impressions"\n• "Click-through rates by device"\n\n🔍 **Website Analysis:**\n• Just paste any URL to get detailed analysis\n• SEO optimization recommendations\n• Security vulnerability checks\n• Ad placement opportunities\n\n**Examples:** Try "revenue data" or paste "https://example.com" 💰',
+      content: 'Hello! I\'m your Publisher Analytics Assistant. I can help you track revenue, RPM, impressions, and analyze websites for security and SEO insights.\n\nWhat would you like to know? 🚀',
       timestamp: new Date()
     }
   ]);
@@ -52,33 +59,33 @@ const PublisherChatBot: React.FC = () => {
         return formatted;
       }
 
-      // Format security vulnerabilities
+      // Security vulnerabilities
       if (analysis.vulns && analysis.vulns.length > 0) {
         formatted += '🔒 **Security Vulnerabilities:**\n';
         analysis.vulns.forEach((vuln: any, index: number) => {
-          formatted += `${index + 1}. **${vuln.issue}**\n`;
+          formatted += `${index + 1}. **${vuln.issue || 'Security Issue'}**\n`;
           if (vuln.risk) formatted += `   Risk Level: ${vuln.risk}\n`;
           if (vuln.remediation) formatted += `   Solution: ${vuln.remediation}\n`;
           formatted += '\n';
         });
       }
 
-      // Format SEO recommendations
+      // SEO recommendations
       if (analysis.seo && analysis.seo.length > 0) {
         formatted += '📈 **SEO Recommendations:**\n';
         analysis.seo.forEach((seo: any, index: number) => {
-          formatted += `${index + 1}. **${seo.issue}**\n`;
+          formatted += `${index + 1}. **${seo.issue || seo.recommendation || 'SEO Issue'}**\n`;
           if (seo.priority) formatted += `   Priority: ${seo.priority}\n`;
           if (seo.recommendation) formatted += `   Details: ${seo.recommendation}\n`;
           formatted += '\n';
         });
       }
 
-      // Format ad placement suggestions
+      // Ad placement suggestions
       if (analysis.ads && analysis.ads.length > 0) {
         formatted += '💰 **Ad Placement Opportunities:**\n';
         analysis.ads.forEach((ad: any, index: number) => {
-          formatted += `${index + 1}. **${ad.location}**\n`;
+          formatted += `${index + 1}. **${ad.location || 'Ad Placement'}**\n`;
           if (ad.format) formatted += `   Format: ${ad.format}\n`;
           if (ad.reasoning) formatted += `   Why: ${ad.reasoning}\n`;
           formatted += '\n';
@@ -89,86 +96,44 @@ const PublisherChatBot: React.FC = () => {
         formatted += `🎯 **Confidence Level:** ${analysis.confidence}%\n`;
       }
 
-      if (analysis.fetch_method) {
-        formatted += `\n🔧 **Analysis Method:** ${analysis.fetch_method === 'playwright' ? 'Full Browser' : 'Fast HTTP'}`;
-      }
-
       return formatted;
     }
 
-    // Handle regular publisher metrics
-    if (data.type === 'publisher_metric' || !data.type) {
-      let formatted = `📊 **${(data.metric || '').toUpperCase()} Data**\n\n`;
-      
-      // Handle different data structures
-      if (data.metric === 'revenue') {
-        formatted += `💰 **Daily Revenue:** $${data.daily}\n`;
-        formatted += `📅 **Monthly Revenue:** $${data.monthly}\n`;
-        if (data.site_wise) {
-          formatted += `🏢 **Site Breakdown:**\n`;
-          Object.entries(data.site_wise).forEach(([site, revenue]) => {
-            formatted += `   • ${site}: $${revenue}\n`;
-          });
-        }
-      } else if (data.metric === 'geography') {
-        formatted += `🌍 **Geographic Breakdown:**\n`;
-        if (data.breakdown) {
-          Object.entries(data.breakdown).forEach(([region, percentage]) => {
-            formatted += `   • ${region}: ${percentage}%\n`;
-          });
-        }
-        if (data.device) {
-          formatted += `\n📱 **Device Breakdown:**\n`;
-          Object.entries(data.device).forEach(([device, percentage]) => {
-            formatted += `   • ${device}: ${percentage}%\n`;
-          });
-        }
-      } else if (data.metric === 'clicks') {
-        formatted += `👆 **Total Clicks:** ${data.value?.toLocaleString()}\n`;
-        if (data.ctr) {
-          formatted += `📈 **CTR:** ${(data.ctr * 100).toFixed(2)}%\n`;
-        }
-      } else if (data.metric === 'rpm') {
-        formatted += `💵 **RPM:** $${data.value}\n`;
-        if (data.ecpm) {
-          formatted += `📊 **eCPM:** $${data.ecpm}\n`;
-        }
-      } else {
-        // Generic formatting
-        if (data.value !== undefined) {
-          formatted += `📈 **Value:** ${data.value.toLocaleString()}\n`;
-        }
-      }
-      
-      if (data.description) {
-        formatted += `\n💡 ${data.description}`;
-      }
-      
-      return formatted;
+    // Handle publisher metrics
+    let formatted = `📊 **${data.metric || 'Publisher Data'}**\n\n`;
+    
+    if (data.value !== undefined) {
+      formatted += `**Value:** ${data.value}\n`;
     }
-
-    return 'Data received but could not be formatted.';
-  };
-
-  const queryPublisherAPI = async (query: string) => {
-    try {
-      const response = await fetch('http://localhost:8000/publisher/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
+    if (data.daily !== undefined) {
+      formatted += `**Daily:** $${data.daily}\n`;
+    }
+    if (data.monthly !== undefined) {
+      formatted += `**Monthly:** $${data.monthly}\n`;
+    }
+    if (data.ctr !== undefined) {
+      formatted += `**CTR:** ${(data.ctr * 100).toFixed(2)}%\n`;
+    }
+    if (data.ecpm !== undefined) {
+      formatted += `**eCPM:** $${data.ecpm}\n`;
+    }
+    if (data.breakdown) {
+      formatted += `\n**Breakdown:**\n`;
+      Object.entries(data.breakdown).forEach(([key, value]) => {
+        formatted += `• ${key}: ${value}%\n`;
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      throw new Error(`Failed to query publisher API: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+    if (data.site_wise) {
+      formatted += `\n**Site-wise Revenue:**\n`;
+      Object.entries(data.site_wise).forEach(([site, revenue]) => {
+        formatted += `• ${site}: $${revenue}\n`;
+      });
+    }
+    if (data.description) {
+      formatted += `\n_${data.description}_`;
+    }
+
+    return formatted;
   };
 
   const handleSendMessage = async () => {
@@ -189,14 +154,26 @@ const PublisherChatBot: React.FC = () => {
       const loadingMessage: Message = {
         id: messages.length + 2,
         type: 'bot',
-        content: 'Let me fetch your publisher metrics... 📊',
+        content: 'Analyzing your request... ⏳',
         timestamp: new Date(),
         isLoading: true
       };
 
       setMessages(prev => [...prev, loadingMessage]);
 
-      const data = await queryPublisherAPI(userMessage.content);
+      const response = await fetch('http://localhost:8000/publisher/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: userMessage.content }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       
       let responseContent: string;
       if (data.error) {
@@ -241,100 +218,156 @@ const PublisherChatBot: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 font-sans">
-      {/* Header */}
-      <div className="bg-white/95 backdrop-blur-md p-6 text-center border-b border-white/20 shadow-lg">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-          📊 Publisher Analytics Dashboard
-        </h2>
-        <p className="text-gray-600 text-sm">
-          Ask me about your revenue, impressions, RPM, and more!
-        </p>
-      </div>
-      
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white/5">
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            className={`flex animate-slide-in ${
-              message.type === 'user' ? 'justify-end' : 'justify-start'
-            } max-w-[70%] ${
-              message.type === 'user' ? 'ml-auto' : 'mr-auto'
-            }`}
-          >
-            <div className={`
-              p-4 rounded-3xl shadow-lg backdrop-blur-md relative
-              ${message.type === 'user' 
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white ml-8' 
-                : 'bg-white/95 text-gray-800 mr-8'
-              }
-            `}>
-              <div 
-                className="leading-relaxed whitespace-pre-wrap break-words"
-                dangerouslySetInnerHTML={{ 
-                  __html: formatMessageContent(message.content) 
-                }}
-              />
-              <div className={`
-                text-xs mt-2 text-right
-                ${message.type === 'user' ? 'text-white/70' : 'text-gray-500'}
-              `}>
-                {message.timestamp.toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </div>
-              {message.isLoading && (
-                <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-300 border-t-purple-500"></div>
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Navigation - Matching landing page style */}
+      <nav className="border-b border-border/40 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-accent-foreground" />
                 </div>
-              )}
+                <span className="text-xl font-bold text-balance">MediaNet Analytics</span>
+              </div>
+              <div className="hidden md:flex space-x-6">
+                <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Home
+                </Link>
+                <span className="text-accent font-medium">Publisher</span>
+                <Link to="/advertiser" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Advertiser
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm">
+                Log in
+              </Button>
+              <Button size="sm">Get Started</Button>
             </div>
           </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+        </div>
+      </nav>
 
-      {/* Input Area */}
-      <div className="p-4 bg-white/95 backdrop-blur-md border-t border-white/20">
-        <div className="flex gap-3 items-center">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about revenue, RPM, impressions, or any metric..."
-            disabled={isLoading}
-            className="
-              flex-1 px-6 py-4 border-2 border-gray-200 rounded-full 
-              text-base outline-none transition-all duration-300
-              bg-white/90 focus:border-purple-500 focus:ring-4 
-              focus:ring-purple-500/10 focus:bg-white
-              disabled:opacity-60 disabled:cursor-not-allowed
-              placeholder:text-gray-400
-            "
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={isLoading || !inputValue.trim()}
-            className="
-              w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500
-              text-white border-none rounded-full cursor-pointer
-              text-lg flex items-center justify-center
-              transition-all duration-300 shadow-lg
-              hover:shadow-xl hover:-translate-y-1
-              active:translate-y-0 disabled:opacity-60 
-              disabled:cursor-not-allowed disabled:transform-none
-              disabled:shadow-lg
-            "
-          >
-            {isLoading ? (
-              <div className="animate-spin text-xl">⏳</div>
-            ) : (
-              <span className="text-xl">📊</span>
-            )}
-          </button>
+      {/* Chat Interface - Full height, no scrolling */}
+      <div className="flex flex-col h-[calc(100vh-4rem)]">
+        <div className="flex-1 overflow-hidden p-4">
+          <div className="max-w-4xl mx-auto h-full">
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-2xl h-full">
+              <CardContent className="p-0 h-full flex flex-col">
+                {/* Messages Area */}
+                <div className="flex-1 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <div className="space-y-4 p-6">
+                      {messages.map((message) => (
+                        <div 
+                          key={message.id} 
+                          className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <Card className={`max-w-[80%] ${message.type === 'user' ? 'bg-accent text-accent-foreground' : 'bg-card border-border/50'}`}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-full ${message.type === 'user' ? 'bg-accent-foreground/20' : 'bg-muted'}`}>
+                                  {message.type === 'user' ? (
+                                    <User className="h-4 w-4 text-accent-foreground" />
+                                  ) : (
+                                    <Bot className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div 
+                                    className="leading-relaxed whitespace-pre-wrap break-words"
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: formatMessageContent(message.content) 
+                                    }}
+                                  />
+                                  <div className={`text-xs mt-2 ${message.type === 'user' ? 'text-accent-foreground/70' : 'text-muted-foreground'}`}>
+                                    {message.timestamp.toLocaleTimeString([], { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </div>
+                                  {message.isLoading && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      <span className="text-sm">Processing...</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Input Area */}
+                <div className="border-t border-border/40 p-4 bg-card/30 backdrop-blur-sm">
+                  <div className="flex gap-3 mb-3">
+                    <Input
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask about revenue, impressions, RPM, or paste a URL to analyze..."
+                      disabled={isLoading}
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={isLoading || !inputValue.trim()}
+                      size="icon"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Quick action badges */}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => setInputValue('Show me today\'s revenue')}
+                    >
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      Revenue
+                    </Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => setInputValue('What\'s my RPM this month?')}
+                    >
+                      <BarChart3 className="mr-1 h-3 w-3" />
+                      RPM
+                    </Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => setInputValue('Geography breakdown')}
+                    >
+                      <Globe className="mr-1 h-3 w-3" />
+                      Geography
+                    </Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => setInputValue('https://example.com')}
+                    >
+                      <Shield className="mr-1 h-3 w-3" />
+                      Analyze URL
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
