@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+playwright
+nest_asyncio
+google-generativeai
+pydantic
+requests
+python-dotenv
+sentence-transformers
+torch
