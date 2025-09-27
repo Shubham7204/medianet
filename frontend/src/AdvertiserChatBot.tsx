@@ -8,7 +8,7 @@ import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
 import { Badge } from "./components/ui/badge"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
 import { Textarea } from "./components/ui/textarea"
 import { Label } from "./components/ui/label"
@@ -216,19 +216,22 @@ const AdvertiserChatBot: React.FC = () => {
   const formatBannerConcept = (data: any): { content: string; imageUrl?: string } => {
     let formatted = `🎨 **Banner Generated**\n\n`;
     
-    // Check if we have actual image URL
-    if (data.image_url || data.image_path) {
+    // Check if we have actual image URL - first check nested in result, then at top level
+    const imageUrl = data.result?.image_url || data.image_url || data.result?.image_path || data.image_path;
+    const bannerData = data.result || data;
+    
+    if (imageUrl) {
       formatted += `✅ **Status:** AI-generated banner image ready!\n`;
-      formatted += `📐 **Banner Size:** ${data.banner_size || 'N/A'}\n`;
-      if (data.dimensions) {
-        formatted += `📏 **Dimensions:** ${data.dimensions}\n`;
+      formatted += `📐 **Banner Size:** ${bannerData.banner_size || 'N/A'}\n`;
+      if (bannerData.dimensions) {
+        formatted += `📏 **Dimensions:** ${bannerData.dimensions}\n`;
       }
-      formatted += `🏢 **Domain:** ${data.domain || 'N/A'}\n`;
-      formatted += `🎯 **Campaign Type:** ${data.campaign_type || 'Digital Advertisement'}\n`;
-      formatted += `🤖 **Generated with:** ${data.model_used || 'AI Model'}\n\n`;
+      formatted += `🏢 **Domain:** ${bannerData.domain || 'N/A'}\n`;
+      formatted += `🎯 **Campaign Type:** ${bannerData.campaign_type || 'Digital Advertisement'}\n`;
+      formatted += `🤖 **Generated with:** ${bannerData.model_used || 'AI Model'}\n\n`;
       formatted += `_Click to download or save the generated banner image._`;
       
-      return { content: formatted, imageUrl: data.image_url || data.image_path };
+      return { content: formatted, imageUrl: imageUrl };
     }
     
     // Fallback to concept formatting for text-based responses
@@ -788,15 +791,6 @@ const AdvertiserChatBot: React.FC = () => {
                                         >
                                           Download PNG
                                         </Button>
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline"
-                                          onClick={() => {
-                                            navigator.clipboard.writeText(message.imageUrl!);
-                                          }}
-                                        >
-                                          Copy Image URL
-                                        </Button>
                                       </div>
                                     </div>
                                   )}
@@ -1076,6 +1070,9 @@ const AdvertiserChatBot: React.FC = () => {
               <Palette className="h-5 w-5" />
               Banner Design Request
             </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Fill in the details below to generate an AI-powered banner design for your campaign.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">

@@ -186,7 +186,13 @@ class ImageGenerationService:
                             image_data = part.inline_data.data
                             
                             # Save image to static directory
-                            image_filename = f"banner_{req.domain}_{req.banner_size}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}.png"
+                            # Clean domain name for filename (remove spaces and special chars)
+                            clean_domain = "".join(c for c in req.domain if c.isalnum() or c in ('-', '_')).rstrip()
+                            if not clean_domain:
+                                clean_domain = "image"
+                            
+                            # Use "creative" instead of "banner" to avoid ad blocker detection
+                            image_filename = f"creative_{clean_domain}_{req.banner_size}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}.png"
                             image_path = os.path.join("static", "images", image_filename)
                             full_image_path = os.path.join(os.getcwd(), image_path)
                             
@@ -202,14 +208,17 @@ class ImageGenerationService:
             
             if image_path:
                 logger.info("✅ Banner image generated successfully")
+                # Convert to web path format
+                web_path = image_path.replace(os.sep, '/').lstrip('/')
                 return {
                     "message": "Banner image generated successfully",
                     "banner_size": req.banner_size,
                     "dimensions": banner_dimensions,
                     "domain": req.domain,
                     "image_format": "PNG",
-                    "image_path": f"/{image_path.replace(os.sep, '/')}",  # Convert to web path
-                    "image_url": f"http://localhost:8000/{image_path.replace(os.sep, '/')}",  # Full URL
+                    "image_path": f"/{web_path}",  # Web path for static serving
+                    "image_url": f"http://localhost:8000/{web_path}",  # Full URL
+                    "filename": image_filename,
                     "model_used": "gemini-2.5-flash-image-preview",
                     "campaign_type": "Digital Display Advertisement"
                 }
@@ -383,7 +392,8 @@ class ImageGenerationService:
             
             if "image_path" in result:
                 # Read the saved image file
-                full_image_path = os.path.join(os.getcwd(), result["image_path"].lstrip('/').replace('/', os.sep))
+                image_path = result["image_path"].lstrip('/')
+                full_image_path = os.path.join(os.getcwd(), image_path)
                 
                 if os.path.exists(full_image_path):
                     with open(full_image_path, 'rb') as f:
