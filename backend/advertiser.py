@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 from typing import Dict
 from sentence_transformers import SentenceTransformer, util
 import torch
 import logging
 from exa_agent import exa_agent, QueryRequest as ExaQueryRequest
+from imggen import image_gen_service, AdCampaignRequest
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -173,6 +174,62 @@ async def exa_competitive_intelligence(request: ExaQueryRequest):
         logger.error(f"Exa competitive intelligence failed: {e}")
         raise HTTPException(status_code=500, detail=f"Competitive intelligence analysis failed: {str(e)}")
 
+@router.post("/analyze-campaign")
+async def analyze_campaign(request: AdCampaignRequest):
+    """Analyze ad campaign data with AI insights."""
+    logger.info(f"Advertiser campaign analysis request for domain: {request.domain}")
+    
+    try:
+        result = await image_gen_service.analyze_campaign(request)
+        return {
+            "service": "advertiser",
+            "analysis_type": "campaign_analysis",
+            "domain": request.domain,
+            "banner_size": request.banner_size,
+            "analysis": result.dict(),
+            "timestamp": "2025-09-27T10:30:00Z"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Campaign analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Campaign analysis failed: {str(e)}")
+
+@router.post("/generate-banner-concept")
+async def generate_banner_concept(request: AdCampaignRequest):
+    """Generate banner concept and creative suggestions."""
+    logger.info(f"Banner concept generation request for {request.banner_size} banner")
+    
+    try:
+        result = await image_gen_service.generate_banner_concept(request)
+        return {
+            "service": "advertiser",
+            "generation_type": "banner_concept",
+            "domain": request.domain,
+            "banner_size": request.banner_size,
+            "result": result,
+            "timestamp": "2025-09-27T10:30:00Z"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Banner concept generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Banner concept generation failed: {str(e)}")
+
+@router.post("/generate-banner-image")
+async def generate_banner_image(request: AdCampaignRequest):
+    """Generate actual banner image file."""
+    logger.info(f"Banner image generation request for {request.banner_size} banner")
+    
+    try:
+        # Return the image directly as HTTP response
+        return await image_gen_service.generate_banner_image_response(request)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Banner image generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Banner image generation failed: {str(e)}")
+
 @router.post("/query")
 async def handle_advertiser_query(user_query: UserQuery):
     """Handle natural language queries for advertiser metrics."""
@@ -210,6 +267,9 @@ def advertiser_info():
         "endpoints": {
             "/query": "Natural language query endpoint",
             "/exa-competitive-intelligence": "AI-powered competitive intelligence using web search",
+            "/analyze-campaign": "AI-powered ad campaign analysis",
+            "/generate-banner-concept": "Generate banner concept and creative suggestions",
+            "/generate-banner-image": "Generate actual banner image (PNG format)",
             "/impressions": "Ad impression data",
             "/clicks": "Click data and CTR",
             "/conversions": "Conversion tracking data",

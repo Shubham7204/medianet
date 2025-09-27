@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from publisher import router as publisher_router
 from advertiser import router as advertiser_router
 from exa_agent import exa_agent
+import os
 
 # --- FastAPI setup ---
 app = FastAPI(
@@ -23,6 +25,14 @@ app.add_middleware(
 # --- Routers ---
 app.include_router(publisher_router, prefix="/publisher", tags=["Publisher"])
 app.include_router(advertiser_router, prefix="/advertiser", tags=["Advertiser"])
+
+# --- Static Files ---
+# Create static directory if it doesn't exist
+static_dir = os.path.join(os.getcwd(), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Health endpoints ---
 @app.get("/")
