@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from publisher import router as publisher_router
 from advertiser import router as advertiser_router
+from exa_agent import exa_agent
 
 # --- FastAPI setup ---
 app = FastAPI(
@@ -26,7 +27,16 @@ app.include_router(advertiser_router, prefix="/advertiser", tags=["Advertiser"])
 # --- Health endpoints ---
 @app.get("/")
 async def health_check():
-	return {"status": "healthy", "services": ["publisher", "advertiser"]}
+	exa_status = "available" if exa_agent.exa_client and exa_agent.gemini_model else "unavailable"
+	return {
+		"status": "healthy", 
+		"services": ["publisher", "advertiser"], 
+		"exa_agent": exa_status,
+		"features": {
+			"publisher": ["analytics", "website_analysis", "content_strategy"],
+			"advertiser": ["analytics", "competitive_intelligence"]
+		}
+	}
 
 @app.get("/health")
 async def health():

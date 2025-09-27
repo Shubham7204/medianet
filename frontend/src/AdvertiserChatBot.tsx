@@ -19,6 +19,7 @@ import {
   DollarSign,
   MousePointer,
   BarChart3,
+  Search,
 } from "lucide-react"
 
 interface Message {
@@ -43,12 +44,13 @@ const AdvertiserChatBot: React.FC = () => {
       id: 1,
       type: "bot",
       content:
-        "Hello! I'm your Advertiser Campaign Assistant. I can help you track campaign performance, conversions, ROI, and ad spend.\n\nWhat would you like to know? 🚀",
+        "Hello! I'm your Advertiser Campaign Assistant. I can help you track campaign performance, conversions, ROI, and ad spend.\n\n🔍 **New!** Use the search button (🔍) for AI-powered competitive intelligence!\n\nWhat would you like to know? 🚀",
       timestamp: new Date(),
     },
   ])
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isWebSearchMode, setIsWebSearchMode] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -89,6 +91,150 @@ const AdvertiserChatBot: React.FC = () => {
     formatted += `\n_${data.description}_`
     return formatted
   }
+
+  const formatExaResults = (data: any): string => {
+    let formatted = `🔍 **Competitive Intelligence for:** "${data.query}"\n\n`;
+    
+    if (data.ai_insights && typeof data.ai_insights === 'string') {
+      try {
+        const insights = JSON.parse(data.ai_insights);
+        
+        if (insights.market_gaps) {
+          formatted += '🎯 **Market Gaps:**\n';
+          insights.market_gaps.forEach((gap: string, index: number) => {
+            formatted += `${index + 1}. ${gap}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.bidding_strategy) {
+          formatted += '💰 **Bidding Strategy:**\n';
+          formatted += `${insights.bidding_strategy}\n\n`;
+        }
+        
+        if (insights.key_differentiators) {
+          formatted += '🚀 **Key Differentiators:**\n';
+          insights.key_differentiators.forEach((diff: string) => {
+            formatted += `• ${diff}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.target_audience) {
+          formatted += '🎯 **Target Audience:**\n';
+          formatted += `${insights.target_audience}\n\n`;
+        }
+        
+        if (insights.campaign_angles) {
+          formatted += '📊 **Campaign Angles:**\n';
+          insights.campaign_angles.forEach((angle: string, index: number) => {
+            formatted += `${index + 1}. ${angle}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.competitive_advantage) {
+          formatted += '⚡ **Competitive Advantage:**\n';
+          formatted += `${insights.competitive_advantage}\n\n`;
+        }
+      } catch (e) {
+        formatted += `💡 **AI Insights:**\n${data.ai_insights}\n\n`;
+      }
+    }
+    
+    if (data.top_competitors && data.top_competitors.length > 0) {
+      formatted += '🏆 **Top Competitors:**\n';
+      data.top_competitors.slice(0, 5).forEach((comp: any, index: number) => {
+        formatted += `${index + 1}. ${comp.domain} (${comp.mentions} mentions)\n`;
+      });
+      formatted += '\n';
+    }
+    
+    if (data.market_trends && data.market_trends.length > 0) {
+      formatted += '📈 **Market Trends:**\n';
+      data.market_trends.slice(0, 3).forEach((trend: any, index: number) => {
+        formatted += `${index + 1}. **${trend.title}**\n`;
+        if (trend.snippet) {
+          formatted += `   ${trend.snippet.substring(0, 100)}...\n`;
+        }
+        formatted += `   🔗 [Read more](${trend.url})\n\n`;
+      });
+    }
+    
+    return formatted;
+  };
+
+  const handleExaSearch = async () => {
+    if (!inputValue.trim()) return;
+
+    const userMessage: Message = {
+      id: messages.length + 1,
+      type: "user",
+      content: `🔍 Competitive Analysis: ${inputValue.trim()}`,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    const searchQuery = inputValue.trim();
+    setInputValue("");
+    setIsLoading(true);
+
+    try {
+      const loadingMessage: Message = {
+        id: messages.length + 2,
+        type: "bot",
+        content: "Analyzing competitors and market intelligence... 🌐",
+        timestamp: new Date(),
+        isLoading: true,
+      };
+
+      setMessages((prev) => [...prev, loadingMessage]);
+
+      const response = await fetch("http://localhost:8000/advertiser/exa-competitive-intelligence", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          num_results: 8,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      let responseContent: string;
+      if (data.error) {
+        responseContent = `❌ **Error:** ${data.error}\n\nPlease make sure the Exa API is configured properly.`;
+      } else {
+        responseContent = formatExaResults(data);
+      }
+
+      const botResponse: Message = {
+        id: messages.length + 3,
+        type: "bot",
+        content: responseContent,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => prev.slice(0, -1).concat([botResponse]));
+    } catch (error) {
+      const errorMessage: Message = {
+        id: messages.length + 3,
+        type: "bot",
+        content: `❌ Sorry, competitive analysis failed:\n\n${error instanceof Error ? error.message : "Unknown error"}\n\nPlease make sure the backend server is running and Exa API is configured.`,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => prev.slice(0, -1).concat([errorMessage]));
+    }
+
+    setIsLoading(false);
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
@@ -162,7 +308,11 @@ const AdvertiserChatBot: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      if (isWebSearchMode) {
+        handleExaSearch()
+      } else {
+        handleSendMessage()
+      }
     }
   }
 
@@ -288,21 +438,46 @@ const AdvertiserChatBot: React.FC = () => {
                 {/* Input Area */}
                 <div className="border-t border-border/40 p-4 bg-card/30 backdrop-blur-sm">
                   <div className="flex gap-3 mb-3">
-                    <Input
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask about conversions, CPC, ROI, or campaign performance..."
-                      disabled={isLoading}
-                      className="flex-1"
-                    />
+                    <div className="flex-1 relative">
+                      <Input
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={isWebSearchMode 
+                          ? "🔍 Competitive Analysis Mode: Enter product/service to analyze..." 
+                          : "Ask about conversions, CPC, ROI, or campaign performance..."
+                        }
+                        disabled={isLoading}
+                        className={isWebSearchMode ? "border-blue-500 bg-blue-50/20" : ""}
+                      />
+                      {isWebSearchMode && (
+                        <div className="absolute -top-6 left-0 text-xs text-blue-600 font-medium">
+                          🔍 Competitive Analysis Active
+                        </div>
+                      )}
+                    </div>
                     <Button
-                      onClick={handleSendMessage}
+                      onClick={() => {
+                        setIsWebSearchMode(!isWebSearchMode);
+                        if (!isWebSearchMode) {
+                          setInputValue(''); // Clear input when switching modes
+                        }
+                      }}
+                      size="icon"
+                      variant={isWebSearchMode ? "default" : "outline"}
+                      title="Toggle Competitive Analysis Mode"
+                    >
+                      <Search className={`h-4 w-4 ${isWebSearchMode ? 'text-white' : ''}`} />
+                    </Button>
+                    <Button
+                      onClick={isWebSearchMode ? handleExaSearch : handleSendMessage}
                       disabled={isLoading || !inputValue.trim()}
                       size="icon"
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isWebSearchMode ? (
+                        <Search className="h-4 w-4" />
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
@@ -350,6 +525,17 @@ const AdvertiserChatBot: React.FC = () => {
                     >
                       <MousePointer className="mr-1 h-3 w-3" />
                       CTR
+                    </Badge>
+                    <Badge
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => {
+                        setIsWebSearchMode(true);
+                        setInputValue("email marketing software competitors");
+                      }}
+                    >
+                      <Search className="mr-1 h-3 w-3" />
+                      Competitive Analysis
                     </Badge>
                   </div>
                 </div>

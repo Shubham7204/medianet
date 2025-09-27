@@ -1,8 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict
 from sentence_transformers import SentenceTransformer, util
 import torch
+import logging
+from exa_agent import exa_agent, QueryRequest as ExaQueryRequest
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Initialize router
 router = APIRouter()
@@ -154,6 +159,20 @@ advertiser_metric_texts = [f"{key}: {desc}" for key, desc in ADVERTISER_METRICS.
 advertiser_metric_keys = list(ADVERTISER_METRICS.keys())
 advertiser_metric_embeddings = model.encode(advertiser_metric_texts)
 
+@router.post("/exa-competitive-intelligence")
+async def exa_competitive_intelligence(request: ExaQueryRequest):
+    """Get AI-powered competitive intelligence using Exa web search."""
+    logger.info(f"Advertiser Exa competitive intelligence request: {request.query}")
+    
+    try:
+        result = await exa_agent.advertiser_competitive_intelligence(request)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Exa competitive intelligence failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Competitive intelligence analysis failed: {str(e)}")
+
 @router.post("/query")
 async def handle_advertiser_query(user_query: UserQuery):
     """Handle natural language queries for advertiser metrics."""
@@ -190,6 +209,7 @@ def advertiser_info():
         "available_metrics": list(ADVERTISER_METRICS.keys()),
         "endpoints": {
             "/query": "Natural language query endpoint",
+            "/exa-competitive-intelligence": "AI-powered competitive intelligence using web search",
             "/impressions": "Ad impression data",
             "/clicks": "Click data and CTR",
             "/conversions": "Conversion tracking data",

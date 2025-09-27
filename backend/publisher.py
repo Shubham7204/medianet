@@ -13,6 +13,7 @@ from playwright.async_api import async_playwright
 import google.generativeai as genai
 from dotenv import load_dotenv
 import logging
+from exa_agent import exa_agent, QueryRequest as ExaQueryRequest
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -457,6 +458,20 @@ async def analyze_site(request: URLRequest):
         logger.error(f"Analysis failed for {url}: {e}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+@router.post("/exa-content-strategy")
+async def exa_content_strategy(request: ExaQueryRequest):
+    """Get AI-powered content strategy using Exa web search."""
+    logger.info(f"Publisher Exa content strategy request: {request.query}")
+    
+    try:
+        result = await exa_agent.publisher_content_strategy(request)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Exa content strategy failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Content strategy analysis failed: {str(e)}")
+
 @router.post("/query")
 async def handle_publisher_query(user_query: UserQuery):
     """Handle natural language queries for publisher metrics or website analysis."""
@@ -528,6 +543,7 @@ def publisher_info():
         "endpoints": {
             "/query": "Natural language query endpoint (supports URLs for website analysis)",
             "/analyze": "Direct website analysis endpoint",
+            "/exa-content-strategy": "AI-powered content strategy using web search",
             "/impressions": "Ad impression data",
             "/clicks": "Click data and CTR",
             "/revenue": "Revenue and earnings data",

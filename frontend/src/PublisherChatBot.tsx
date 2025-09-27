@@ -5,7 +5,7 @@ import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
 import { Badge } from './components/ui/badge';
 import { ScrollArea } from './components/ui/scroll-area';
-import { BarChart3, Send, Loader2, Bot, User, Globe, Shield, TrendingUp } from 'lucide-react';
+import { BarChart3, Send, Loader2, Bot, User, Globe, Shield, TrendingUp, Search } from 'lucide-react';
 import ChartRenderer from './components/ChartRenderer';
 
 interface Message {
@@ -22,12 +22,13 @@ const PublisherChatBot: React.FC = () => {
     {
       id: 1,
       type: 'bot',
-      content: 'Hello! I\'m your Publisher Analytics Assistant. I can help you track revenue, RPM, impressions, and analyze websites for security and SEO insights.\n\nWhat would you like to know? 🚀',
+      content: 'Hello! I\'m your Publisher Analytics Assistant. I can help you track revenue, RPM, impressions, and analyze websites for security and SEO insights.\n\n🔍 **New!** Use the search button (🔍) for AI-powered content strategy analysis!\n\nWhat would you like to know? 🚀',
       timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isWebSearchMode, setIsWebSearchMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -138,6 +139,148 @@ const PublisherChatBot: React.FC = () => {
     return formatted;
   };
 
+  const formatExaResults = (data: any): string => {
+    let formatted = `🔍 **Content Strategy Analysis for:** "${data.query}"\n\n`;
+    
+    if (data.ai_insights && typeof data.ai_insights === 'string') {
+      try {
+        const insights = JSON.parse(data.ai_insights);
+        
+        if (insights.article_ideas) {
+          formatted += '📝 **Content Ideas:**\n';
+          insights.article_ideas.forEach((idea: string, index: number) => {
+            formatted += `${index + 1}. ${idea}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.seo_keywords) {
+          formatted += '🔑 **SEO Keywords:**\n';
+          insights.seo_keywords.forEach((keyword: string) => {
+            formatted += `• ${keyword}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.target_audience) {
+          formatted += '🎯 **Target Audience:**\n';
+          formatted += `${insights.target_audience}\n\n`;
+        }
+        
+        if (insights.content_formats) {
+          formatted += '📊 **Content Formats:**\n';
+          insights.content_formats.forEach((format: string, index: number) => {
+            formatted += `${index + 1}. ${format}\n`;
+          });
+          formatted += '\n';
+        }
+        
+        if (insights.monetization_opportunities) {
+          formatted += '💰 **Monetization Ideas:**\n';
+          insights.monetization_opportunities.forEach((opp: string) => {
+            formatted += `• ${opp}\n`;
+          });
+          formatted += '\n';
+        }
+      } catch (e) {
+        formatted += `💡 **AI Insights:**\n${data.ai_insights}\n\n`;
+      }
+    }
+    
+    if (data.top_keywords && data.top_keywords.length > 0) {
+      formatted += '🏷️ **Trending Keywords:**\n';
+      data.top_keywords.slice(0, 8).forEach((kw: any) => {
+        formatted += `• ${kw.keyword} (${kw.frequency}x)\n`;
+      });
+      formatted += '\n';
+    }
+    
+    if (data.trending_content && data.trending_content.length > 0) {
+      formatted += '📈 **Trending Content:**\n';
+      data.trending_content.slice(0, 3).forEach((content: any, index: number) => {
+        formatted += `${index + 1}. **${content.title}**\n`;
+        if (content.snippet) {
+          formatted += `   ${content.snippet.substring(0, 100)}...\n`;
+        }
+        formatted += `   🔗 [Read more](${content.url})\n\n`;
+      });
+    }
+    
+    return formatted;
+  };
+
+  const handleExaSearch = async () => {
+    if (!inputValue.trim()) return;
+
+    const userMessage: Message = {
+      id: messages.length + 1,
+      type: 'user',
+      content: `🔍 Web Search: ${inputValue.trim()}`,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    const searchQuery = inputValue.trim();
+    setInputValue('');
+    setIsLoading(true);
+
+    try {
+      const loadingMessage: Message = {
+        id: messages.length + 2,
+        type: 'bot',
+        content: 'Searching the web for content strategy insights... 🌐',
+        timestamp: new Date(),
+        isLoading: true
+      };
+
+      setMessages(prev => [...prev, loadingMessage]);
+
+      const response = await fetch('http://localhost:8000/publisher/exa-content-strategy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          query: searchQuery,
+          num_results: 8 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      let responseContent: string;
+      if (data.error) {
+        responseContent = `❌ **Error:** ${data.error}\n\nPlease make sure the Exa API is configured properly.`;
+      } else {
+        responseContent = formatExaResults(data);
+      }
+
+      const botResponse: Message = {
+        id: messages.length + 3,
+        type: 'bot',
+        content: responseContent,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => prev.slice(0, -1).concat([botResponse]));
+    } catch (error) {
+      const errorMessage: Message = {
+        id: messages.length + 3,
+        type: 'bot',
+        content: `❌ Sorry, web search failed:\n\n${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease make sure the backend server is running and Exa API is configured.`,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => prev.slice(0, -1).concat([errorMessage]));
+    }
+
+    setIsLoading(false);
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
@@ -210,7 +353,11 @@ const PublisherChatBot: React.FC = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (isWebSearchMode) {
+        handleExaSearch();
+      } else {
+        handleSendMessage();
+      }
     }
   };
 
@@ -363,21 +510,46 @@ const PublisherChatBot: React.FC = () => {
                 {/* Input Area */}
                 <div className="border-t border-border/40 p-4 bg-card/30 backdrop-blur-sm">
                   <div className="flex gap-3 mb-3">
-                    <Input
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask about revenue, impressions, RPM, or paste a URL to analyze..."
-                      disabled={isLoading}
-                      className="flex-1"
-                    />
+                    <div className="flex-1 relative">
+                      <Input
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder={isWebSearchMode 
+                          ? "🔍 Web Search Mode: Enter topic for content strategy analysis..." 
+                          : "Ask about revenue, impressions, RPM, or paste a URL to analyze..."
+                        }
+                        disabled={isLoading}
+                        className={isWebSearchMode ? "border-blue-500 bg-blue-50/20" : ""}
+                      />
+                      {isWebSearchMode && (
+                        <div className="absolute -top-6 left-0 text-xs text-blue-600 font-medium">
+                          🔍 Web Search Active
+                        </div>
+                      )}
+                    </div>
                     <Button
-                      onClick={handleSendMessage}
+                      onClick={() => {
+                        setIsWebSearchMode(!isWebSearchMode);
+                        if (!isWebSearchMode) {
+                          setInputValue(''); // Clear input when switching modes
+                        }
+                      }}
+                      size="icon"
+                      variant={isWebSearchMode ? "default" : "outline"}
+                      title="Toggle Web Search Mode"
+                    >
+                      <Search className={`h-4 w-4 ${isWebSearchMode ? 'text-white' : ''}`} />
+                    </Button>
+                    <Button
+                      onClick={isWebSearchMode ? handleExaSearch : handleSendMessage}
                       disabled={isLoading || !inputValue.trim()}
                       size="icon"
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isWebSearchMode ? (
+                        <Search className="h-4 w-4" />
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
@@ -417,6 +589,17 @@ const PublisherChatBot: React.FC = () => {
                     >
                       <Shield className="mr-1 h-3 w-3" />
                       Analyze URL
+                    </Badge>
+                    <Badge 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-accent/20 transition-colors"
+                      onClick={() => {
+                        setIsWebSearchMode(true);
+                        setInputValue('AI content marketing trends 2025');
+                      }}
+                    >
+                      <Search className="mr-1 h-3 w-3" />
+                      Web Search
                     </Badge>
                   </div>
                 </div>
