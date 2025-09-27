@@ -10,6 +10,8 @@ sentence-transformers
 torch
 exa-py
 pillow
+pandas
+numpy
 # RAG Engine dependencies
 langchain-community
 langchain-pinecone

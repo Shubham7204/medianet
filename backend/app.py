@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from publisher import router as publisher_router
 from advertiser import router as advertiser_router
 from ragengine import router as rag_router
+from keywordanalysis import router as keyword_router
 from exa_agent import exa_agent
 import os
 
@@ -27,6 +28,7 @@ app.add_middleware(
 app.include_router(publisher_router, prefix="/publisher", tags=["Publisher"])
 app.include_router(advertiser_router, prefix="/advertiser", tags=["Advertiser"])
 app.include_router(rag_router, prefix="/rag", tags=["RAG Engine"])
+app.include_router(keyword_router, prefix="/keyword", tags=["Keyword Analysis"])
 
 # --- Static Files ---
 # Create static directory if it doesn't exist
@@ -46,13 +48,14 @@ async def health_check():
 	
 	return {
 		"status": "healthy", 
-		"services": ["publisher", "advertiser", "rag"], 
+		"services": ["publisher", "advertiser", "rag", "keyword"], 
 		"exa_agent": exa_status,
 		"rag_engine": rag_status,
 		"features": {
 			"publisher": ["analytics", "website_analysis", "content_strategy"],
 			"advertiser": ["analytics", "competitive_intelligence", "banner_generation"],
-			"rag": ["document_query", "pdf_search", "knowledge_base"]
+			"rag": ["document_query", "pdf_search", "knowledge_base"],
+			"keyword": ["marketing_strategy", "keyword_research", "performance_projection"]
 		}
 	}
 

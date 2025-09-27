@@ -574,7 +574,7 @@ const AdvertiserChatBot: React.FC = () => {
       }
 
       const data = await response.json();
-
+      
       let responseContent: string;
       if (data.error) {
         responseContent = `❌ **Error:** ${data.error}\n\nPlease make sure the Exa API is configured properly.`;
@@ -722,7 +722,7 @@ const AdvertiserChatBot: React.FC = () => {
               <Button size="sm">Get Started</Button>
             </div>
           </div>
-        </div>
+      </div>
       </nav>
 
       {/* Chat Interface - Full height, no scrolling */}
@@ -731,13 +731,13 @@ const AdvertiserChatBot: React.FC = () => {
           <div className="max-w-4xl mx-auto h-full">
             <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-2xl h-full">
               <CardContent className="p-0 h-full flex flex-col">
-                {/* Messages Area */}
+      {/* Messages Area */}
                 <div className="flex-1 overflow-hidden">
                   <ScrollArea className="h-full">
                     <div className="space-y-4 p-6">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
+        {messages.map((message) => (
+          <div 
+            key={message.id} 
                           className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
                         >
                           <Card
@@ -761,9 +761,9 @@ const AdvertiserChatBot: React.FC = () => {
                                   )}
                                 </div>
                                 <div className="flex-1">
-                                  <div
-                                    className="leading-relaxed whitespace-pre-wrap break-words"
-                                    dangerouslySetInnerHTML={{
+              <div 
+                className="leading-relaxed whitespace-pre-wrap break-words"
+                dangerouslySetInnerHTML={{ 
                                       __html: formatMessageContent(message.content),
                                     }}
                                   />
@@ -812,36 +812,36 @@ const AdvertiserChatBot: React.FC = () => {
                                       message.type === "user" ? "text-accent-foreground/70" : "text-muted-foreground"
                                     }`}
                                   >
-                                    {message.timestamp.toLocaleTimeString([], {
+                {message.timestamp.toLocaleTimeString([], { 
                                       hour: "2-digit",
                                       minute: "2-digit",
-                                    })}
-                                  </div>
-                                  {message.isLoading && (
+                })}
+              </div>
+              {message.isLoading && (
                                     <div className="flex items-center gap-2 mt-2">
                                       <Loader2 className="h-4 w-4 animate-spin" />
                                       <span className="text-sm">Processing...</span>
-                                    </div>
-                                  )}
-                                </div>
+                </div>
+              )}
+            </div>
                               </div>
                             </CardContent>
                           </Card>
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
-                </div>
+      </div>
 
-                {/* Input Area */}
+      {/* Input Area */}
                 <div className="border-t border-border/40 p-4 bg-card/30 backdrop-blur-sm">
                   <div className="flex gap-3 mb-3">
                     <div className="flex-1 relative">
                       <Input
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={handleKeyPress}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={handleKeyPress}
                         placeholder={
                           isWebSearchMode 
                             ? "🔍 Competitive Analysis Mode: Enter product/service to analyze..." 
@@ -851,7 +851,7 @@ const AdvertiserChatBot: React.FC = () => {
                             ? "🎨 Banner Generation Mode: Enter company name or banner requirements..."
                             : "Ask about conversions, CPC, ROI, or campaign performance..."
                         }
-                        disabled={isLoading}
+            disabled={isLoading}
                         className={
                           isWebSearchMode ? "border-blue-500 bg-blue-50/20" :
                           isCampaignAnalysisMode ? "border-green-500 bg-green-50/20" :
@@ -927,10 +927,10 @@ const AdvertiserChatBot: React.FC = () => {
                         isBannerGenMode ? handleBannerGeneration :
                         handleSendMessage
                       }
-                      disabled={isLoading || !inputValue.trim()}
+            disabled={isLoading || !inputValue.trim()}
                       size="icon"
-                    >
-                      {isLoading ? (
+          >
+            {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : isWebSearchMode ? (
                         <Search className="h-4 w-4" />
@@ -1058,9 +1058,9 @@ const AdvertiserChatBot: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
+    </div>
 
       {/* Banner Design Form Dialog */}
       <Dialog open={showBannerForm} onOpenChange={setShowBannerForm}>

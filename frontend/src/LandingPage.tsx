@@ -94,7 +94,7 @@ const LandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
             <Card className="p-8 bg-card/50 backdrop-blur-sm border-border/50 hover:border-accent/50 transition-all duration-300">
               <CardContent className="p-0">
                 <div className="flex items-center mb-4">
@@ -131,6 +131,26 @@ const LandingPage: React.FC = () => {
                   <Button variant="outline">
                     View Campaigns
                     <Eye className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="p-8 bg-card/50 backdrop-blur-sm border-border/50 hover:border-accent/50 transition-all duration-300">
+              <CardContent className="p-0">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mr-4">
+                    <TrendingUp className="w-6 h-6 text-accent" />
+                  </div>
+                  <h3 className="text-2xl font-bold">Marketing Predictor</h3>
+                </div>
+                <p className="text-muted-foreground mb-6 text-pretty">
+                  Get AI-powered marketing predictions, trend analysis, and future forecasts to optimize your campaigns.
+                </p>
+                <Link to="/predict">
+                  <Button variant="outline">
+                    View Predictions
+                    <Zap className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
               </CardContent>
