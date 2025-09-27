@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, HttpUrl
 from typing import Dict
 from sentence_transformers import SentenceTransformer, util
+from urllib.parse import urlparse
 import torch
 import asyncio
 import os
@@ -471,6 +472,378 @@ async def exa_content_strategy(request: ExaQueryRequest):
     except Exception as e:
         logger.error(f"Exa content strategy failed: {e}")
         raise HTTPException(status_code=500, detail=f"Content strategy analysis failed: {str(e)}")
+    
+
+class CompetitiveAnalysisRequest(BaseModel):
+    url: HttpUrl
+
+class MultiCompetitiveAnalysisRequest(BaseModel):
+    my_website: HttpUrl
+    competitor_urls: list[HttpUrl]
+
+def extract_metrics(html: str, url: str) -> dict:
+    """Extract quantifiable metrics from website HTML."""
+    try:
+        # Word count
+        text_content = re.sub(r'<[^>]+>', '', html)  # Strip HTML tags
+        word_count = len(text_content.split())
+
+        # Keyword frequency (basic)
+        keywords = ['tech', 'AI', 'startup', 'news']  # Example keywords
+        keyword_freq = {kw: len(re.findall(rf'\b{kw}\b', text_content, re.IGNORECASE)) for kw in keywords}
+
+        # Ad density estimation
+        ad_patterns = ['ad', 'advert', 'banner', 'sponsored']
+        ad_count = sum(len(re.findall(pattern, html, re.IGNORECASE)) for pattern in ad_patterns)
+        ad_density = min((ad_count / max(len(html), 1)) * 100, 100)  # Percentage
+
+        # SEO factors
+        title_match = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE)
+        title_length = len(title_match.group(1)) if title_match else 0
+        meta_desc_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', html, re.IGNORECASE)
+        meta_desc_length = len(meta_desc_match.group(1)) if meta_desc_match else 0
+
+        # Engagement cues (basic)
+        link_count = len(re.findall(r'<a\s+href=', html, re.IGNORECASE))
+        image_count = len(re.findall(r'<img\s+src=', html, re.IGNORECASE))
+
+        # Traffic estimates (placeholder, based on content volume)
+        impressions = 1000000 if word_count > 500 else 500000
+        ctr = 1.0 if ad_count > 0 else 0.5
+        revenue = impressions * (ctr / 100) * 0.005  # Rough estimate
+        rpm = revenue / (impressions / 1000)
+
+        return {
+            "word_count": word_count,
+            "keyword_freq": keyword_freq,
+            "ad_density": round(ad_density, 2),
+            "ad_count": ad_count,
+            "title_length": title_length,
+            "meta_desc_length": meta_desc_length,
+            "link_count": link_count,
+            "image_count": image_count,
+            "impressions": impressions,
+            "ctr": ctr,
+            "revenue": round(revenue, 2),
+            "rpm": round(rpm, 2),
+            "geography": {"US": 70, "International": 30},  # Placeholder
+            "device": {"Mobile": 50, "Desktop": 50}  # Placeholder
+        }
+    except Exception as e:
+        logger.error(f"Metric extraction failed for {url}: {e}")
+        return {}
+
+@router.post("/competitive-analysis")
+async def competitive_analysis(request: CompetitiveAnalysisRequest):
+    """Perform competitive analysis for a given website URL."""
+    url = str(request.url)
+    logger.info(f"Competitive analysis for URL: {url}")
+    
+    try:
+        # Step 1: Fetch and analyze the input website
+        if playwright_available:
+            try:
+                html, scripts, iframes = await fetch_rendered_html(url)
+                fetch_method = "playwright"
+            except Exception as playwright_error:
+                logger.warning(f"Playwright failed: {playwright_error}")
+                html, scripts, iframes = fetch_basic_html(url)
+                fetch_method = "fallback"
+        else:
+            html, scripts, iframes = fetch_basic_html(url)
+            fetch_method = "fallback"
+        
+        sanitized_html = sanitize_html(html)
+        input_metrics = extract_metrics(sanitized_html, url)
+        
+        # Step 2: Find competitors using Exa
+        domain = urlparse(url).netloc.replace('www.', '')
+        query = f"site:*.{domain.split('.')[-1]} {domain.split('.')[0]} similar sites"
+        exa_request = ExaQueryRequest(query=query, num_results=3)
+        competitor_results = await exa_agent.publisher_content_strategy(exa_request)
+        
+        competitors = []
+        for result in competitor_results.get("trending_content", [])[:3]:
+            comp_url = result["url"]
+            try:
+                if playwright_available:
+                    comp_html, _, _ = await fetch_rendered_html(comp_url)
+                else:
+                    comp_html, _, _ = fetch_basic_html(comp_url)
+                comp_metrics = extract_metrics(comp_html, comp_url)
+                comp_metrics["url"] = comp_url
+                competitors.append(comp_metrics)
+            except Exception as e:
+                logger.warning(f"Failed to fetch competitor {comp_url}: {e}")
+                continue
+        
+        # Step 3: Prepare comparative data
+        comparison = {
+            "input_site": {"url": url, **input_metrics},
+            "competitors": competitors
+        }
+        
+        # Step 4: Generate actionable insights with Gemini
+        comparison_summary = f"""
+        Input Site: {url}
+        Metrics: {json.dumps(input_metrics, indent=2)}
+        Competitors: {json.dumps(competitors, indent=2)}
+        """
+        
+        insights_prompt = f"""
+        Based on this competitive analysis:
+
+        {comparison_summary}
+
+        Provide actionable insights in JSON format:
+        {{
+            "competitor_strengths": ["specific strength 1", "specific strength 2", "specific strength 3"],
+            "optimizations": ["actionable recommendation 1", "actionable recommendation 2", "actionable recommendation 3"]
+        }}
+        Focus on why competitors perform better and specific, actionable improvements for the input site.
+        """
+        
+        insights = call_gemini(insights_prompt)
+        
+        # Step 5: Format visualization data
+        chart_data = {
+            "impressions_revenue": {
+                "type": "bar",
+                "title": "Impressions and Revenue Comparison",
+                "labels": [url] + [c["url"] for c in competitors],
+                "datasets": [
+                    {
+                        "label": "Impressions (monthly)",
+                        "data": [input_metrics.get("impressions", 0)] + [c.get("impressions", 0) for c in competitors],
+                        "backgroundColor": "#4285F4"
+                    },
+                    {
+                        "label": "Revenue ($ monthly)",
+                        "data": [input_metrics.get("revenue", 0)] + [c.get("revenue", 0) for c in competitors],
+                        "backgroundColor": "#34A853"
+                    }
+                ]
+            },
+            "geography": {
+                "type": "pie",
+                "title": "Average Geography Breakdown",
+                "labels": ["US", "International"],
+                "data": [
+                    sum(c.get("geography", {}).get("US", 0) for c in [input_metrics] + competitors) / (len(competitors) + 1),
+                    sum(c.get("geography", {}).get("International", 0) for c in [input_metrics] + competitors) / (len(competitors) + 1)
+                ],
+                "backgroundColor": ["#4285F4", "#EA4335"]
+            },
+            "rpm_ctr": {
+                "type": "bar",
+                "title": "RPM and CTR Comparison",
+                "labels": [url] + [c["url"] for c in competitors],
+                "datasets": [
+                    {
+                        "label": "RPM ($)",
+                        "data": [input_metrics.get("rpm", 0)] + [c.get("rpm", 0) for c in competitors],
+                        "backgroundColor": "#FBBC04"
+                    },
+                    {
+                        "label": "CTR (%)",
+                        "data": [input_metrics.get("ctr", 0)] + [c.get("ctr", 0) for c in competitors],
+                        "backgroundColor": "#EA4335"
+                    }
+                ]
+            }
+        }
+        
+        return {
+            "service": "competitive_analysis",
+            "url": url,
+            "fetch_method": fetch_method,
+            "comparison": comparison,
+            "insights": insights,
+            "chart_data": chart_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Competitive analysis failed for {url}: {e}")
+        raise HTTPException(status_code=500, detail=f"Competitive analysis failed: {str(e)}")
+
+@router.post("/competitive-analysis-multiple")
+async def competitive_analysis_multiple(request: MultiCompetitiveAnalysisRequest):
+    """Perform competitive analysis between user's website and multiple competitor URLs."""
+    my_website = str(request.my_website)
+    competitor_urls = [str(url) for url in request.competitor_urls]
+    logger.info(f"Multi-competitive analysis: {my_website} vs {competitor_urls}")
+    
+    try:
+        fetch_method = "playwright" if playwright_available else "fallback"
+        
+        # Step 1: Analyze user's website
+        if playwright_available:
+            try:
+                html, scripts, iframes = await fetch_rendered_html(my_website)
+            except Exception:
+                html, scripts, iframes = fetch_basic_html(my_website)
+                fetch_method = "fallback"
+        else:
+            html, scripts, iframes = fetch_basic_html(my_website)
+        
+        sanitized_html = sanitize_html(html)
+        my_metrics = extract_metrics(sanitized_html, my_website)
+        
+        # Step 2: Analyze competitor websites
+        competitors = []
+        for comp_url in competitor_urls:
+            try:
+                if playwright_available:
+                    try:
+                        comp_html, _, _ = await fetch_rendered_html(comp_url)
+                    except Exception:
+                        comp_html, _, _ = fetch_basic_html(comp_url)
+                else:
+                    comp_html, _, _ = fetch_basic_html(comp_url)
+                    
+                comp_sanitized_html = sanitize_html(comp_html)
+                comp_metrics = extract_metrics(comp_sanitized_html, comp_url)
+                comp_metrics["url"] = comp_url
+                competitors.append(comp_metrics)
+                
+            except Exception as e:
+                logger.warning(f"Failed to analyze competitor {comp_url}: {e}")
+                # Add placeholder data for failed analysis
+                competitors.append({
+                    "url": comp_url,
+                    "error": f"Analysis failed: {str(e)}",
+                    "word_count": 0,
+                    "ad_count": 0,
+                    "impressions": 0,
+                    "ctr": 0,
+                    "revenue": 0,
+                    "rpm": 0,
+                    "link_count": 0,
+                    "image_count": 0,
+                    "geography": {"US": 0, "International": 0},
+                    "device": {"Mobile": 0, "Desktop": 0}
+                })
+        
+        # Step 3: Prepare comparative data
+        comparison = {
+            "input_site": {"url": my_website, **my_metrics},
+            "competitors": competitors
+        }
+        
+        # Step 4: Generate insights with Gemini
+        all_sites_data = [comparison["input_site"]] + competitors
+        comparison_summary = f"""
+        My Website: {my_website}
+        Metrics: {json.dumps(my_metrics, indent=2)}
+        
+        Competitors Analysis:
+        {json.dumps(competitors, indent=2)}
+        """
+        
+        insights_prompt = f"""
+        Based on this multi-competitor analysis:
+
+        {comparison_summary}
+
+        Provide actionable insights in JSON format:
+        {{
+            "competitor_strengths": ["specific strength competitors have over my site", "another competitive advantage", "third key differentiator"],
+            "optimizations": ["specific actionable improvement for my site", "another optimization opportunity", "third recommendation"]
+        }}
+        
+        Focus on:
+        1. Where competitors outperform my website
+        2. Specific, actionable improvements I can implement
+        3. Opportunities to gain competitive advantage
+        """
+        
+        insights = call_gemini(insights_prompt)
+        
+        # Step 5: Create visualization data
+        site_labels = [my_website] + [comp.get("url", f"Competitor {i+1}") for i, comp in enumerate(competitors)]
+        
+        chart_data = {
+            "impressions_revenue": {
+                "type": "bar",
+                "title": "Traffic & Revenue Comparison",
+                "labels": site_labels,
+                "datasets": [
+                    {
+                        "label": "Monthly Impressions",
+                        "data": [my_metrics.get("impressions", 0)] + [comp.get("impressions", 0) for comp in competitors],
+                        "backgroundColor": "#4285F4"
+                    },
+                    {
+                        "label": "Monthly Revenue ($)",
+                        "data": [my_metrics.get("revenue", 0)] + [comp.get("revenue", 0) for comp in competitors],
+                        "backgroundColor": "#34A853"
+                    }
+                ]
+            },
+            "performance_metrics": {
+                "type": "radar",
+                "title": "Performance Metrics Comparison",
+                "labels": ["Content Volume", "Ad Density", "CTR", "RPM", "SEO Score"],
+                "datasets": [
+                    {
+                        "label": "My Website",
+                        "data": [
+                            min(my_metrics.get("word_count", 0) / 1000, 100),
+                            my_metrics.get("ad_density", 0),
+                            my_metrics.get("ctr", 0) * 20,  # Scale for visibility
+                            my_metrics.get("rpm", 0),
+                            min(my_metrics.get("link_count", 0) / 10, 100)
+                        ],
+                        "backgroundColor": "rgba(66, 133, 244, 0.2)",
+                        "borderColor": "#4285F4"
+                    }
+                ] + [
+                    {
+                        "label": f"Competitor {i+1}",
+                        "data": [
+                            min(comp.get("word_count", 0) / 1000, 100),
+                            comp.get("ad_density", 0),
+                            comp.get("ctr", 0) * 20,
+                            comp.get("rpm", 0),
+                            min(comp.get("link_count", 0) / 10, 100)
+                        ],
+                        "backgroundColor": f"rgba({52 + i*50}, {168 - i*30}, {83 + i*40}, 0.2)",
+                        "borderColor": f"rgb({52 + i*50}, {168 - i*30}, {83 + i*40})"
+                    } for i, comp in enumerate(competitors)
+                ]
+            },
+            "engagement_comparison": {
+                "type": "bar",
+                "title": "Content & Engagement Metrics",
+                "labels": site_labels,
+                "datasets": [
+                    {
+                        "label": "Links",
+                        "data": [my_metrics.get("link_count", 0)] + [comp.get("link_count", 0) for comp in competitors],
+                        "backgroundColor": "#FBBC04"
+                    },
+                    {
+                        "label": "Images", 
+                        "data": [my_metrics.get("image_count", 0)] + [comp.get("image_count", 0) for comp in competitors],
+                        "backgroundColor": "#EA4335"
+                    }
+                ]
+            }
+        }
+        
+        return {
+            "service": "competitive_analysis_multiple",
+            "my_website": my_website,
+            "competitor_urls": competitor_urls,
+            "fetch_method": fetch_method,
+            "comparison": comparison,
+            "insights": insights,
+            "chart_data": chart_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Multi-competitive analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Multi-competitive analysis failed: {str(e)}")
 
 @router.post("/query")
 async def handle_publisher_query(user_query: UserQuery):
