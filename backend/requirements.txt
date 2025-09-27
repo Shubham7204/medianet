@@ -10,3 +10,8 @@ sentence-transformers
 torch
 exa-py
 pillow
+# RAG Engine dependencies
+langchain-community
+langchain-pinecone
+langchain-google-genai
+pinecone-client

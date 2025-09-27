@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
+import { Card, CardContent } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
-import { BarChart3, Target, TrendingUp, Shield, Zap, Bot, Smartphone, Users, Globe, Eye } from 'lucide-react';
+import { BarChart3, Target, TrendingUp, Shield, Zap, Bot, Smartphone, Globe, Eye } from 'lucide-react';
+import RAGChatBot from './RAGChatBot';
 
 const LandingPage: React.FC = () => {
   return (
@@ -204,9 +205,9 @@ const LandingPage: React.FC = () => {
             <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
               <CardContent className="p-0">
                 <Bot className="w-8 h-8 text-accent mb-4" />
-                <h3 className="text-xl font-bold mb-3">AI-Powered Insights</h3>
+                <h3 className="text-xl font-bold mb-3">Knowledge Assistant</h3>
                 <p className="text-muted-foreground text-pretty">
-                  Machine learning algorithms that predict trends and optimize performance automatically.
+                  AI-powered chatbot that answers questions from your documentation and knowledge base. Try the assistant in the bottom-right corner!
                 </p>
               </CardContent>
             </Card>
@@ -277,6 +278,9 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* RAG AI Assistant - Side Popup */}
+      <RAGChatBot />
     </div>
   );
 };
