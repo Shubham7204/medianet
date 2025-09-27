@@ -252,7 +252,9 @@ const PublisherChatBot: React.FC = () => {
             <tbody>
               {data.value !== undefined && (
                 <tr className="bg-background">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">Value</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    Value
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     {data.value}
                   </td>
@@ -260,7 +262,9 @@ const PublisherChatBot: React.FC = () => {
               )}
               {data.daily !== undefined && (
                 <tr className="bg-muted/20">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">Daily</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    Daily
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     ${data.daily}
                   </td>
@@ -268,7 +272,9 @@ const PublisherChatBot: React.FC = () => {
               )}
               {data.monthly !== undefined && (
                 <tr className="bg-background">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">Monthly</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    Monthly
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     ${data.monthly}
                   </td>
@@ -276,7 +282,9 @@ const PublisherChatBot: React.FC = () => {
               )}
               {data.ctr !== undefined && (
                 <tr className="bg-muted/20">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">CTR</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    CTR
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     {(data.ctr * 100).toFixed(2)}%
                   </td>
@@ -284,7 +292,9 @@ const PublisherChatBot: React.FC = () => {
               )}
               {data.ecpm !== undefined && (
                 <tr className="bg-background">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">eCPM</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    eCPM
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     ${data.ecpm}
                   </td>
@@ -292,7 +302,9 @@ const PublisherChatBot: React.FC = () => {
               )}
               {data.breakdown && (
                 <tr className="bg-muted/20">
-                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">Breakdown</td>
+                  <td className="border border-border px-4 py-2 text-sm font-medium text-foreground">
+                    Breakdown
+                  </td>
                   <td className="border border-border px-4 py-2 text-sm text-foreground">
                     {Object.entries(data.breakdown).map(([key, value]) => (
                       <div key={key}>
@@ -1039,6 +1051,12 @@ const PublisherChatBot: React.FC = () => {
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Advertiser
+                </Link>
+                <Link
+                  to="/predict"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Predict
                 </Link>
               </div>
             </div>
